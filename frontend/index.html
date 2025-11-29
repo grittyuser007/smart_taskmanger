@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Task Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-title {
+            font-size: 1.8em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .app-subtitle {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 40px;
+        }
+
+        .strategy-section {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .strategy-label {
+            font-size: 0.85em;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        .strategy-select {
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            background: white;
+            color: #333;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .toolbar h1 {
+            font-size: 2em;
+            color: #2c3e50;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+            z-index: 100;
+        }
+
+        .suggestion-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .suggestion-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .suggestion-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .suggestion-item {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s;
+        }
+
+        .suggestion-item:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateX(5px);
+        }
+
+        .suggestion-number {
+            background: white;
+            color: #667eea;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1em;
+            flex-shrink: 0;
+        }
+
+        .suggestion-content {
+            flex: 1;
+        }
+
+        .suggestion-task-title {
+            font-weight: 600;
+            font-size: 1.05em;
+            margin-bottom: 5px;
+        }
+
+        .suggestion-meta {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+
+        /* Task Grid */
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .task-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            border-left: 4px solid #667eea;
+        }
+
+        .task-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .task-card.priority-high {
+            border-left-color: #e74c3c;
+        }
+
+        .task-card.priority-medium {
+            border-left-color: #f39c12;
+        }
+
+        .task-card.priority-low {
+            border-left-color: #27ae60;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .task-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2c3e50;
+            flex: 1;
+        }
+
+        .task-score {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.95em;
+        }
+
+        .task-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.85em;
+            flex: 1;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 25px 30px;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #95a5a6;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .close-btn:hover {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #95a5a6;
+        }
+
+        .empty-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 20px;
+            }
+
+            .task-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-icon {
+                bottom: 20px;
+                right: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div>
+                <h1 class="app-title">📋 TaskFlow</h1>
+                <p class="app-subtitle">Smart Task Prioritization</p>
+            </div>
+
+            <div class="strategy-section">
+                <div class="strategy-label">Prioritization Strategy</div>
+                <select class="strategy-select" id="strategySelect" onchange="changeStrategy()">
+                    <option value="smart_balance">⚖️ Smart Balance</option>
+                    <option value="fastest_wins">⚡ Fastest Wins</option>
+                    <option value="high_impact">⭐ High Impact</option>
+                    <option value="deadline_driven">⏰ Deadline Driven</option>
+                </select>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div id="suggestionSection" style="display: none;"></div>
+            
+            <div class="toolbar">
+                <h1>My Tasks</h1>
+                <div class="toolbar-actions">
+                    <button class="btn btn-primary" onclick="getSuggestions()">
+                        <span>💡</span>
+                        Suggest Top 3
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadTasks()">
+                        <span>🔄</span>
+                        Refresh
+                    </button>
+                    <button class="btn btn-danger" onclick="clearAllTasks()">
+                        <span>🗑️</span>
+                        Clear All
+                    </button>
+                </div>
+            </div>
+
+            <div id="taskContainer" class="task-grid">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Loading tasks...</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Floating Add Button -->
+        <button class="btn btn-primary btn-icon" onclick="openModal()">+</button>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div class="modal" id="addTaskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add New Task</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Task ID *</label>
+                    <input type="text" class="form-input" id="taskId" placeholder="e.g., TASK-001" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Task Title *</label>
+                    <input type="text" class="form-input" id="taskTitle" placeholder="Enter task title" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="taskDescription" placeholder="Enter task description"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Deadline</label>
+                        <input type="date" class="form-input" id="taskDeadline">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Effort (hours)</label>
+                        <input type="number" class="form-input" id="taskEffort" min="0.5" step="0.5" placeholder="5">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Importance (1-10)</label>
+                    <input type="range" class="form-input" id="taskImportance" min="1" max="10" value="5" oninput="document.getElementById('importanceValue').textContent = this.value">
+                    <div style="text-align: center; margin-top: 5px; font-weight: 600; color: #667eea;">
+                        <span id="importanceValue">5</span>/10
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Bulk Import (JSON)</label>
+                    <textarea class="form-textarea" id="bulkInput" placeholder='[{"id": "task1", "title": "Task", "deadline": "2025-12-01", "effort": 3, "importance": 8}]'></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="saveBulkTasks()">📋 Bulk Import</button>
+                <button class="btn btn-primary" onclick="saveTask()">💾 Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/tasks';
+        let currentStrategy = 'smart_balance';
+
+        // Load tasks on page load
+        window.addEventListener('DOMContentLoaded', loadTasks);
+
+        function changeStrategy() {
+            currentStrategy = document.getElementById('strategySelect').value;
+            loadTasks();
+        }
+
+        function openModal() {
+            document.getElementById('addTaskModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('addTaskModal').classList.remove('active');
+            clearForm();
+        }
+
+        function clearForm() {
+            document.getElementById('taskId').value = '';
+            document.getElementById('taskTitle').value = '';
+            document.getElementById('taskDescription').value = '';
+            document.getElementById('taskDeadline').value = '';
+            document.getElementById('taskEffort').value = '';
+            document.getElementById('taskImportance').value = '5';
+            document.getElementById('importanceValue').textContent = '5';
+            document.getElementById('bulkInput').value = '';
+        }
+
+        async function saveTask() {
+            const id = document.getElementById('taskId').value.trim();
+            const title = document.getElementById('taskTitle').value.trim();
+            const description = document.getElementById('taskDescription').value.trim();
+            const deadline = document.getElementById('taskDeadline').value;
+            const effort = parseFloat(document.getElementById('taskEffort').value) || 5;
+            const importance = parseInt(document.getElementById('taskImportance').value);
+
+            if (!id || !title) {
+                alert('Please enter Task ID and Title');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/add/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id, title, description, deadline, effort, importance, urgency: 5, dependencies: []
+                    })
+                });
+
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error);
+
+                closeModal();
+                loadTasks();
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        async function saveBulkTasks() {
+            const bulkInput = document.getElementById('bulkInput').value.trim();
+            if (!bulkInput) {
+                alert('Please paste JSON tasks');
+                return;
+            }
+
+            try {
+                const tasks = JSON.parse(bulkInput);
+                if (!Array.isArray(tasks)) throw new Error('Input must be an array');
+
+                const tasksToSend = tasks.map(task => ({
+                    id: task.id,
+                    title: task.title,
+                    description: task.description || '',
+                    deadline: task.deadline || task.due_date || null,
+                    effort: task.effort || task.estimated_hours || 5,
+                    importance: task.importance || 5,
+                    urgency: task.urgency || 5,
+                    dependencies: task.dependencies || []
+                }));
+
+                const response = await fetch(`${API_BASE}/add-bulk/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tasks: tasksToSend })
+                });
+
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error);
+
+                closeModal();
+                loadTasks();
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        async function loadTasks() {
+            const container = document.getElementById('taskContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Analyzing tasks...</div></div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/analyze/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ strategy: currentStrategy })
+                });
+
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error);
+
+                displayTasks(data.tasks, data.circular_dependencies);
+            } catch (error) {
+                container.innerHTML = `<div class="empty-state">
+                    <div class="empty-icon">❌</div>
+                    <div class="empty-text">Error loading tasks</div>
+                    <div>${error.message}</div>
+                </div>`;
+            }
+        }
+
+        function displayTasks(tasks, circularDeps) {
+            const container = document.getElementById('taskContainer');
+
+            if (tasks.length === 0) {
+                container.innerHTML = `<div class="empty-state">
+                    <div class="empty-icon">📝</div>
+                    <div class="empty-text">No tasks yet</div>
+                    <div>Click the + button to add your first task</div>
+                </div>`;
+                return;
+            }
+
+            let html = '';
+
+            // Show circular dependency warning if present
+            if (circularDeps && circularDeps.length > 0) {
+                html += `
+                    <div style="grid-column: 1 / -1; background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #856404;">⚠️ Warning: Circular Dependencies Detected</strong>
+                        <div style="margin-top: 10px; color: #856404;">
+                            ${circularDeps.map(cycle => cycle.join(' → ')).join('<br>')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += tasks.map((item, index) => {
+                const task = item.task;
+                const score = item.score;
+                const breakdown = item.breakdown;
+                
+                let priorityClass = 'priority-medium';
+                if (score >= 70) priorityClass = 'priority-high';
+                else if (score < 50) priorityClass = 'priority-low';
+
+                return `
+                    <div class="task-card ${priorityClass}">
+                        <div class="task-header">
+                            <div class="task-title">${index + 1}. ${task.title}</div>
+                            <div class="task-score">${score.toFixed(1)}</div>
+                        </div>
+                        <div class="task-meta">
+                            <div class="meta-item">📅 ${task.deadline || task.due_date || 'No deadline'}</div>
+                            <div class="meta-item">⏱️ ${task.effort || task.estimated_hours || 0}h</div>
+                            <div class="meta-item">⭐ ${task.importance}/10</div>
+                            <div class="meta-item">🔗 ${(task.dependencies || []).length} deps</div>
+                        </div>
+                        ${task.description ? `<div style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 10px;">${task.description}</div>` : ''}
+                        <div style="font-size: 0.85em; color: #95a5a6;">
+                            <strong>Score:</strong> U:${breakdown.urgency.toFixed(0)} | I:${breakdown.importance.toFixed(0)} | E:${breakdown.effort.toFixed(0)} | D:${breakdown.dependency.toFixed(0)}
+                        </div>
+                        <div class="task-actions">
+                            <button class="btn btn-primary btn-small" onclick="markDone('${task.id}')">✓ Complete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        async function markDone(taskId) {
+            if (!confirm('Mark this task as done?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/${taskId}/done/`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ strategy: currentStrategy })
+                });
+
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error);
+
+                loadTasks();
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        async function clearAllTasks() {
+            if (!confirm('Delete all tasks? This cannot be undone.')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/clear/`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error);
+
+                loadTasks();
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        async function getSuggestions() {
+            const suggestionSection = document.getElementById('suggestionSection');
+            suggestionSection.style.display = 'block';
+            suggestionSection.innerHTML = `
+                <div class="suggestion-section">
+                    <div class="suggestion-title">💡 Top Task Suggestions</div>
+                    <div class="loading" style="color: white;">Analyzing tasks...</div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${API_BASE}/suggest/?count=3&strategy=${currentStrategy}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error);
+
+                displaySuggestions(data.suggestions);
+            } catch (error) {
+                suggestionSection.innerHTML = `
+                    <div class="suggestion-section">
+                        <div class="suggestion-title">💡 Top Task Suggestions</div>
+                        <div style="padding: 20px; text-align: center;">Error: ${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function displaySuggestions(suggestions) {
+            const suggestionSection = document.getElementById('suggestionSection');
+
+            if (suggestions.length === 0) {
+                suggestionSection.innerHTML = `
+                    <div class="suggestion-section">
+                        <div class="suggestion-title">💡 Top Task Suggestions</div>
+                        <div style="padding: 20px; text-align: center;">No tasks available for suggestions</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div class="suggestion-section">
+                    <div class="suggestion-title">💡 Recommended Tasks to Work On</div>
+                    <div class="suggestion-list">
+            `;
+
+            suggestions.forEach((item, index) => {
+                const task = item.task;
+                const score = item.score;
+                const explanation = item.explanation ;
+
+                html += `
+                    <div class="suggestion-item">
+                        <div class="suggestion-number">${index + 1}</div>
+                        <div class="suggestion-content">
+                            <div class="suggestion-task-title">${task.title}</div>
+                            <div class="suggestion-meta">
+                                ${explanation} • Score: ${score.toFixed(1)} • 
+                                ${task.deadline || 'No deadline'} • 
+                                ${task.effort || 0}h
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            suggestionSection.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
