@@ -9,7 +9,7 @@ class Task(models.Model):
     importance = models.IntegerField(default=5)
     urgency = models.IntegerField(default=5)
     effort = models.IntegerField(default=5)
-    deadline = models.DateField(blank=True, null=True)
+    due_date = models.DateField(blank=True, null=True)
     dependencies = JSONField(default=list, blank=True)
     is_done = models.BooleanField(default=False)
     priority_score = models.FloatField(default=0.0)

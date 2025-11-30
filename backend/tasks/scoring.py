@@ -3,13 +3,19 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Set
 import math
 
+try:
+    import holidays
+    HOLIDAYS_AVAILABLE = True
+except ImportError:
+    HOLIDAYS_AVAILABLE = False
+
 
 class TaskScorer:
     """
     Intelligent task priority scoring system that balances multiple factors.
     
     Scoring Components:
-    - Urgency Score (0-40): Based on days until due date
+    - Urgency Score (0-40): Based on working days until due date
     - Importance Score (0-30): Direct mapping from user rating
     - Effort Score (0-15): Inverse relationship - quick wins get higher scores
     - Dependency Score (0-15): Tasks blocking others rank higher
@@ -17,15 +23,25 @@ class TaskScorer:
     Total possible score: 100 points
     """
     
-    def __init__(self, strategy='smart_balance'):
+    def __init__(self, strategy='smart_balance', country='IN', consider_holidays=True):
         """
         Initialize scorer with a specific strategy.
         
         Args:
             strategy: 'fastest_wins', 'high_impact', 'deadline_driven', or 'smart_balance'
+            country: Country code for holidays ('IN', 'US', 'GB', etc.)
+            consider_holidays: Whether to exclude weekends/holidays in urgency calculation
         """
         self.strategy = strategy
+        self.country = country
+        self.consider_holidays = consider_holidays and HOLIDAYS_AVAILABLE
         self.weights = self._get_strategy_weights()
+        
+        # Initialize holidays if available
+        if self.consider_holidays:
+            self.country_holidays = holidays.country_holidays(country)
+        else:
+            self.country_holidays = None
     
     def _get_strategy_weights(self) -> Dict[str, float]:
         """Return weight multipliers based on selected strategy."""
@@ -57,28 +73,58 @@ class TaskScorer:
         }
         return strategies.get(self.strategy, strategies['smart_balance'])
     
-    def calculate_urgency_score(self, due_date: Optional[str], current_date: datetime = None) -> float:
+    def _calculate_working_days(self, start_date, end_date) -> int:
         """
-        Calculate urgency score based on days until due date and urgency rating.
-        
-        Scoring logic:
-        - If urgency rating provided (1-10): Use it scaled to 0-40
-        - Overdue: 40 points (maximum urgency)
-        - Due today: 38 points
-        - Due in 1-3 days: 35-30 points (steep curve)
-        - Due in 4-7 days: 25-20 points
-        - Due in 1-2 weeks: 15-10 points
-        - Due in 2+ weeks: 5-0 points
+        Calculate number of working days between two dates.
+        Excludes weekends and public holidays if holiday support is enabled.
         
         Args:
-            due_date: ISO format date string (YYYY-MM-DD)
-            urgency_rating: User-provided urgency rating (1-10)
+            start_date: Start date
+            end_date: End date
+        
+        Returns:
+            Number of working days (can be negative if overdue)
+        """
+        if end_date < start_date:
+            # Calculate overdue working days
+            return -self._calculate_working_days(end_date, start_date)
+        
+        if not self.consider_holidays:
+            # Fall back to calendar days
+            return (end_date - start_date).days
+        
+        working_days = 0
+        current = start_date
+        
+        while current < end_date:
+            # Skip weekends (Saturday=5, Sunday=6)
+            if current.weekday() < 5:  # Monday=0 to Friday=4
+                # Skip public holidays
+                if current not in self.country_holidays:
+                    working_days += 1
+            current += timedelta(days=1)
+        
+        return working_days
+    
+    def calculate_urgency_score(self, due_date: Optional[str], current_date: datetime = None) -> float:
+        """
+        Calculate urgency score based on working days until due date.
+        
+        Scoring logic:
+        - Overdue: 40 points (maximum urgency)
+        - Due today: 38 points
+        - Due in 1-2 working days: 35-33 points (steep curve)
+        - Due in 3-5 working days: 30-25 points
+        - Due in 6-10 working days: 20-15 points
+        - Due in 11+ working days: <15 points (exponential decay)
+        
+        Args:
+            due_date: ISO format date string (YYYY-MM-DD) or datetime string
             current_date: Reference date (defaults to now)
         
         Returns:
             Urgency score (0-40)
         """
-        
         if not due_date:
             return 10  # Default score for tasks without due dates
         
@@ -86,31 +132,49 @@ class TaskScorer:
             current_date = datetime.now()
         
         try:
-            due = datetime.fromisoformat(due_date)
-            days_until_due = (due.date() - current_date.date()).days
+            # Handle both date strings and datetime strings
+            if isinstance(due_date, str):
+                # Try to parse as datetime first, then fall back to date
+                try:
+                    due = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
+                except ValueError:
+                    due = datetime.strptime(due_date, '%Y-%m-%d')
+            else:
+                due = due_date
+            
+            # Calculate working days or calendar days
+            if self.consider_holidays:
+                days_until_due = self._calculate_working_days(current_date.date(), due.date())
+            else:
+                days_until_due = (due.date() - current_date.date()).days
             
             # Overdue tasks get maximum urgency
             if days_until_due < 0:
-                # Scale overdue tasks: more overdue = higher urgency
                 overdue_days = abs(days_until_due)
-                return min(40, 40 + (overdue_days * 0.5))  # Cap at 40 but signal severity
+                # More overdue = higher urgency (capped at 40)
+                return min(40, 40 + (overdue_days * 0.5))
             
             # Due today
             if days_until_due == 0:
                 return 38
             
-            # Exponential decay for future tasks
-            if days_until_due <= 3:
-                return 35 - (days_until_due * 2)
-            elif days_until_due <= 7:
-                return 25 - ((days_until_due - 3) * 1.5)
-            elif days_until_due <= 14:
-                return 15 - ((days_until_due - 7))
-            else:
+            # Scoring based on working days remaining
+            if days_until_due == 1:
+                return 35
+            elif days_until_due == 2:
+                return 33
+            elif days_until_due <= 5:  # 3-5 working days
+                return 30 - ((days_until_due - 2) * 2)
+            elif days_until_due <= 10:  # 6-10 working days (1-2 weeks)
+                return 20 - ((days_until_due - 5))
+            elif days_until_due <= 15:  # 11-15 working days (2-3 weeks)
+                return 15 - ((days_until_due - 10) * 0.8)
+            else:  # 15+ working days
                 # Asymptotic approach to 0 for far future tasks
-                return max(0, 5 - (days_until_due - 14) * 0.5)
+                return max(0, 5 - (days_until_due - 15) * 0.3)
         
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            print(f"Error parsing date {due_date}: {e}")
             return 10  # Default for invalid dates
     
     def calculate_importance_score(self, importance: Optional[int]) -> float:
@@ -189,7 +253,7 @@ class TaskScorer:
         Returns:
             Dependency score (0-15)
         """
-        dependent_count = len(dependency_map.get(task_id, set()))
+        dependent_count = len(dependency_map.get(str(task_id), set()))
         
         if dependent_count == 0:
             return 5
@@ -205,8 +269,6 @@ class TaskScorer:
         """
         Build reverse dependency map: task_id -> set of tasks depending on it.
         
-        Also detects circular dependencies.
-        
         Args:
             tasks: List of task dictionaries
         
@@ -214,18 +276,20 @@ class TaskScorer:
             Dictionary mapping task IDs to their dependents
         """
         dependency_map = {}
-        task_ids = {task.get('id', str(i)) for i, task in enumerate(tasks)}
+        task_ids = {str(task.get('id', str(i))) for i, task in enumerate(tasks)}
         
         for i, task in enumerate(tasks):
-            task_id = task.get('id', str(i))
+            task_id = str(task.get('id', str(i)))
             dependencies = task.get('dependencies', [])
             
-            for dep_id in dependencies:
-                # Validate dependency exists
-                if dep_id in task_ids:
-                    if dep_id not in dependency_map:
-                        dependency_map[dep_id] = set()
-                    dependency_map[dep_id].add(task_id)
+            if dependencies:
+                for dep_id in dependencies:
+                    dep_id_str = str(dep_id)
+                    # Validate dependency exists
+                    if dep_id_str in task_ids:
+                        if dep_id_str not in dependency_map:
+                            dependency_map[dep_id_str] = set()
+                        dependency_map[dep_id_str].add(task_id)
         
         return dependency_map
     
@@ -235,7 +299,7 @@ class TaskScorer:
         
         Returns list of cycles found as tuples of task IDs.
         """
-        task_map = {task.get('id', str(i)): task for i, task in enumerate(tasks)}
+        task_map = {str(task.get('id', str(i))): task for i, task in enumerate(tasks)}
         visited = set()
         rec_stack = set()
         cycles = []
@@ -243,8 +307,11 @@ class TaskScorer:
         def dfs(task_id: str, path: List[str]):
             if task_id in rec_stack:
                 # Found a cycle
-                cycle_start = path.index(task_id)
-                cycles.append(tuple(path[cycle_start:] + [task_id]))
+                try:
+                    cycle_start = path.index(task_id)
+                    cycles.append(tuple(path[cycle_start:] + [task_id]))
+                except ValueError:
+                    pass
                 return
             
             if task_id in visited:
@@ -255,9 +322,12 @@ class TaskScorer:
             
             task = task_map.get(task_id)
             if task:
-                for dep_id in task.get('dependencies', []):
-                    if dep_id in task_map:
-                        dfs(dep_id, path + [task_id])
+                dependencies = task.get('dependencies', [])
+                if dependencies:
+                    for dep_id in dependencies:
+                        dep_id_str = str(dep_id)
+                        if dep_id_str in task_map:
+                            dfs(dep_id_str, path + [task_id])
             
             rec_stack.remove(task_id)
         
@@ -287,19 +357,20 @@ class TaskScorer:
         if dependency_map is None:
             dependency_map = self.build_dependency_map(all_tasks)
         
-        task_id = task.get('id', str(all_tasks.index(task)))
+        task_id = str(task.get('id', str(all_tasks.index(task))))
         
         # Calculate component scores
-        # Support both old and new field names
-        due_date = task.get('deadline') or task.get('due_date')
-        urgency_score = self.calculate_urgency_score(due_date)
+        # Support both field name conventions
+        due_date = task.get('due_date')
+        estimated_hours = task.get('estimated_hours') or task.get('effort')
+        
+        urgency = self.calculate_urgency_score(due_date)
         importance = self.calculate_importance_score(task.get('importance'))
-        effort_hours = task.get('effort') or task.get('estimated_hours')
-        effort = self.calculate_effort_score(effort_hours)
+        effort = self.calculate_effort_score(estimated_hours)
         dependency = self.calculate_dependency_score(task_id, all_tasks, dependency_map)
         
         # Apply strategy weights
-        weighted_urgency = urgency_score * self.weights['urgency']
+        weighted_urgency = urgency * self.weights['urgency']
         weighted_importance = importance * self.weights['importance']
         weighted_effort = effort * self.weights['effort']
         weighted_dependency = dependency * self.weights['dependency']
@@ -321,7 +392,7 @@ class TaskScorer:
                 'dependency': round(weighted_dependency, 2)
             },
             'raw_scores': {
-                'urgency': round(urgency_score, 2),
+                'urgency': round(urgency, 2),
                 'importance': round(importance, 2),
                 'effort': round(effort, 2),
                 'dependency': round(dependency, 2)
@@ -385,7 +456,6 @@ class TaskScorer:
         """Generate human-readable explanation for task priority."""
         breakdown = scored_task['breakdown']
         raw = scored_task['raw_scores']
-        task = scored_task['task']
         
         reasons = []
         
