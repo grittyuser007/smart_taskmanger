@@ -467,23 +467,212 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Mobile Responsive Styles */
         @media (max-width: 768px) {
             .app-container {
                 flex-direction: column;
+                height: auto;
             }
 
             .sidebar {
                 width: 100%;
                 padding: 20px;
+                min-height: auto;
+            }
+
+            .app-title {
+                font-size: 1.5em;
+            }
+
+            .app-subtitle {
+                font-size: 0.85em;
+                margin-bottom: 20px;
+            }
+
+            .strategy-section {
+                margin-top: 20px;
+                padding-top: 15px;
+            }
+
+            .main-content {
+                padding: 20px 15px;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+
+            .toolbar h1 {
+                font-size: 1.5em;
+                text-align: center;
+            }
+
+            .toolbar-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+                padding: 12px 20px;
+            }
+
+            .suggestion-section {
+                padding: 20px 15px;
+                margin-bottom: 20px;
+            }
+
+            .suggestion-title {
+                font-size: 1.1em;
+                margin-bottom: 12px;
+            }
+
+            .suggestion-item {
+                flex-direction: row;
+                padding: 12px;
+            }
+
+            .suggestion-number {
+                width: 30px;
+                height: 30px;
+                font-size: 1em;
+            }
+
+            .suggestion-task-title {
+                font-size: 0.95em;
+            }
+
+            .suggestion-meta {
+                font-size: 0.8em;
             }
 
             .task-grid {
                 grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .task-card {
+                padding: 15px;
+            }
+
+            .task-title {
+                font-size: 1.05em;
+            }
+
+            .task-meta {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .task-score {
+                font-size: 0.85em;
+                padding: 5px 10px;
+            }
+
+            .task-actions {
+                flex-direction: column;
+            }
+
+            .btn-small {
+                width: 100%;
             }
 
             .btn-icon {
                 bottom: 20px;
                 right: 20px;
+                width: 56px;
+                height: 56px;
+                font-size: 1.8em;
+            }
+
+            .modal-content {
+                width: 95%;
+                max-height: 85vh;
+                margin: 10px;
+            }
+
+            .modal-header {
+                padding: 20px 15px;
+            }
+
+            .modal-title {
+                font-size: 1.3em;
+            }
+
+            .modal-body {
+                padding: 20px 15px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-footer {
+                padding: 15px;
+                flex-direction: column;
+            }
+
+            .modal-footer .btn {
+                width: 100%;
+                margin: 0;
+            }
+
+            .empty-state {
+                padding: 40px 20px;
+            }
+
+            .empty-icon {
+                font-size: 3em;
+            }
+
+            .empty-text {
+                font-size: 1em;
+            }
+        }
+
+        /* Small mobile devices */
+        @media (max-width: 480px) {
+            .sidebar {
+                padding: 15px;
+            }
+
+            .app-title {
+                font-size: 1.3em;
+            }
+
+            .main-content {
+                padding: 15px 10px;
+            }
+
+            .toolbar h1 {
+                font-size: 1.3em;
+            }
+
+            .btn {
+                padding: 10px 16px;
+                font-size: 0.9em;
+            }
+
+            .suggestion-section {
+                padding: 15px 12px;
+            }
+
+            .task-card {
+                padding: 12px;
+            }
+
+            .task-title {
+                font-size: 1em;
+            }
+
+            .btn-icon {
+                width: 50px;
+                height: 50px;
+                bottom: 15px;
+                right: 15px;
             }
         }
     </style>
@@ -503,7 +692,7 @@
                     <option value="smart_balance">⚖️ Smart Balance</option>
                     <option value="fastest_wins">⚡ Fastest Wins</option>
                     <option value="high_impact">⭐ High Impact</option>
-                    <option value="deadline_driven">⏰ Deadline Driven</option>
+                    <option value="due_date_driven">⏰ due_date Driven</option>
                 </select>
             </div>
         </aside>
@@ -567,8 +756,8 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Deadline</label>
-                        <input type="date" class="form-input" id="taskDeadline">
+                        <label class="form-label">due_date</label>
+                        <input type="date" class="form-input" id="taskdue_date">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Effort (hours)</label>
@@ -586,7 +775,7 @@
 
                 <div class="form-group">
                     <label class="form-label">Bulk Import (JSON)</label>
-                    <textarea class="form-textarea" id="bulkInput" placeholder='[{"id": "task1", "title": "Task", "deadline": "2025-12-01", "effort": 3, "importance": 8}]'></textarea>
+                    <textarea class="form-textarea" id="bulkInput" placeholder='[{"id": "task1", "title": "Task", "due_date": "2025-12-01", "effort": 3, "importance": 8}]'></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -622,7 +811,7 @@
             document.getElementById('taskId').value = '';
             document.getElementById('taskTitle').value = '';
             document.getElementById('taskDescription').value = '';
-            document.getElementById('taskDeadline').value = '';
+            document.getElementById('taskdue_date').value = '';
             document.getElementById('taskEffort').value = '';
             document.getElementById('taskImportance').value = '5';
             document.getElementById('importanceValue').textContent = '5';
@@ -633,7 +822,7 @@
             const id = document.getElementById('taskId').value.trim();
             const title = document.getElementById('taskTitle').value.trim();
             const description = document.getElementById('taskDescription').value.trim();
-            const deadline = document.getElementById('taskDeadline').value;
+            const due_date = document.getElementById('taskdue_date').value;
             const effort = parseFloat(document.getElementById('taskEffort').value) || 5;
             const importance = parseInt(document.getElementById('taskImportance').value);
 
@@ -647,7 +836,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        id, title, description, deadline, effort, importance, urgency: 5, dependencies: []
+                        id, title, description, due_date, effort, importance, urgency: 5, dependencies: []
                     })
                 });
 
@@ -676,7 +865,7 @@
                     id: task.id,
                     title: task.title,
                     description: task.description || '',
-                    deadline: task.deadline || task.due_date || null,
+                    due_date: task.due_date || task.deadline || null,
                     effort: task.effort || task.estimated_hours || 5,
                     importance: task.importance || 5,
                     urgency: task.urgency || 5,
@@ -765,7 +954,7 @@
                             <div class="task-score">${score.toFixed(1)}</div>
                         </div>
                         <div class="task-meta">
-                            <div class="meta-item">📅 ${task.deadline || task.due_date || 'No deadline'}</div>
+                            <div class="meta-item">📅 ${task.due_date || task.due_date || 'No due_date'}</div>
                             <div class="meta-item">⏱️ ${task.effort || task.estimated_hours || 0}h</div>
                             <div class="meta-item">⭐ ${task.importance}/10</div>
                             <div class="meta-item">🔗 ${(task.dependencies || []).length} deps</div>
@@ -882,7 +1071,7 @@
                             <div class="suggestion-task-title">${task.title}</div>
                             <div class="suggestion-meta">
                                 ${explanation} • Score: ${score.toFixed(1)} • 
-                                ${task.deadline || 'No deadline'} • 
+                                ${task.due_date || 'No due_date'} • 
                                 ${task.effort || 0}h
                             </div>
                         </div>
